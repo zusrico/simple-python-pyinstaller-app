@@ -4,26 +4,31 @@ pipeline {
     stages {
         stage('Instalar dependencias') {
             steps {
-                sh 'pip install -r requirements.txt'
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Test') {
             steps {
-                sh 'pytest tests'
+                sh '''
+                    . venv/bin/activate
+                    python3 -m unittest
+                '''
             }
         }
 
         stage('Build') {
             steps {
-                sh 'pyinstaller --onefile main.py'
+                sh '''
+                    . venv/bin/activate
+                    pyinstaller --onefile sources/main.py
+                '''
             }
-        }
-    }
-
-    post {
-        success {
-            archiveArtifacts artifacts: 'dist/*', fingerprint: true
         }
     }
 }
