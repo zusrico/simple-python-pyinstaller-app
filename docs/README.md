@@ -1,80 +1,128 @@
-Despliegue de Jenkins personalizado con pipeline multibranch para PyInstaller
-Este proyecto muestra cómo configurar Jenkins dentro de un contenedor Docker, personalizado para incluir Docker y Python, con el objetivo de ejecutar un pipeline definido mediante un Jenkinsfile. El pipeline se encarga de compilar una aplicación Python utilizando PyInstaller. Toda la ejecución se realiza desde la rama master.
+# Despliegue de Jenkins personalizado con pipeline multibranch para PyInstaller
 
-Requisitos previos
-Antes de comenzar, asegúrate de tener instalado en tu equipo:
+Este proyecto demuestra cómo desplegar una infraestructura DevOps completa utilizando Docker y Terraform. El objetivo es ejecutar una pipeline en Jenkins que compile una aplicación Python con PyInstaller, de forma automatizada desde el código fuente de GitHub.
 
-Docker
+## Requisitos previos
 
-Git
+Antes de comenzar, asegúrate de tener instalado:
 
-Pasos para ejecutar Jenkins
-Clonar este repositorio
+- Docker (y que el demonio esté corriendo)
+- Terraform
+- Git
+- Acceso a internet
+- Linux (preferiblemente, por compatibilidad con Terraform + Docker)
 
-git clone https://github.com/zusrico/simple-python-pyinstaller-app.git
-cd simple-python-pyinstaller-app
+## Estructura esperada del proyecto
 
-Construir la imagen personalizada de Jenkins
-
-docker build -t jenkins_custom -f docs/Dockerfile .
-
-Ejecutar Jenkins
-
-docker run -d --name jenkins-test -p 8080:8080 --privileged jenkins_custom
-
-Obtener contraseña de administrador
-
-docker exec -it jenkins-test cat /var/jenkins_home/secrets/initialAdminPassword
-
-Acceder a Jenkins en el navegador
-
-Abre http://localhost:8080, pega la contraseña anterior y completa la instalación con los plugins sugeridos.
-
-Crear pipeline multibranch
-
-Crear una tarea nueva de tipo Multibranch Pipeline.
-
-En “Branch Sources”, añadir:
-
-Git
-
-URL del repo: https://github.com/zusrico/simple-python-pyinstaller-app.git
-
-Credenciales de GitHub si se requieren.
-
-En “Discover branches”, usar Filter by name con master.
-
-Guardar.
-
-Qué hace el pipeline
-El Jenkinsfile define 3 etapas:
-
-Instalar dependencias: crea un entorno virtual e instala PyInstaller desde requirements.txt.
-
-Test: ejecuta los tests con unittest.
-
-Build: compila sources/main.py en un ejecutable con PyInstaller.
-
-Estructura esperada del proyecto
+```
 .
 ├── docs/
-│ ├── Dockerfile
-│ └── README.md
-├── jenkins/
-├── sources/
-│ └── main.py
+│   ├── Dockerfile
+│   ├── main.tf
+│   ├── provider.tf
+│   ├── outputs.tf
+│   └── README.md
 ├── Jenkinsfile
 ├── requirements.txt
-└── ...
+├── sources/
+│   └── main.py
+```
 
-Salida esperada
-El ejecutable se genera en:
+## Paso 1: Clonar este repositorio
 
-workspace/python-app-pipeline_master/dist/
+```bash
+git clone https://github.com/zusrico/simple-python-pyinstaller-app.git
+cd simple-python-pyinstaller-app/docs
+```
 
-y puede descargarse desde el workspace de Jenkins.
+## Paso 2: Desplegar Jenkins con Terraform
 
-Autores
-Nombre: García Sánchez, Jesús y Abuín Sánchez, David.
-Curso: Despliegue Python con Jenkins y Terraform
+### 2.1. Inicializar Terraform
+
+```bash
+terraform init
+```
+
+### 2.2. Aplicar el plan (construir imagen y lanzar contenedor)
+
+```bash
+terraform apply
+```
+
+Confirma escribiendo `yes` cuando te lo pida.
+
+> Esto construirá la imagen `jenkins_custom` usando el `Dockerfile` y levantará un contenedor llamado `jenkins-from-tf` expuesto en el puerto 8080.
+
+## Paso 3: Acceder a Jenkins
+
+Abre tu navegador en:
+
+```
+http://localhost:8080
+```
+
+### 3.1. Obtener contraseña de administrador
+
+```bash
+docker exec -it jenkins-from-tf cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+Cópiala y pégala en la interfaz web de Jenkins.
+
+### 3.2. Instalar plugins sugeridos
+
+- Selecciona "Instalar plugins sugeridos"
+- Espera a que termine la instalación
+
+## Paso 4: Configurar el pipeline multibranch
+
+1. En Jenkins, haz clic en **“New Item”**
+2. Escribe un nombre, selecciona **Multibranch Pipeline**, y haz clic en OK
+3. En **Branch Sources**, selecciona “Git”
+4. Pega la URL del repositorio:  
+   `https://github.com/zusrico/simple-python-pyinstaller-app.git`
+5. Añade tus credenciales de GitHub si hace falta (token personal)
+6. En “Discover branches”, asegúrate de detectar `master`
+7. Guarda los cambios
+
+> Jenkins escaneará la rama, detectará el `Jenkinsfile` y ejecutará automáticamente la pipeline.
+
+## Qué hace el Jenkinsfile
+
+El pipeline tiene 3 etapas:
+
+1. **Instalar dependencias**  
+   Crea un entorno virtual con `venv` e instala PyInstaller desde `requirements.txt`.
+
+2. **Test**  
+   Ejecuta los tests de `unittest` (aunque sean cero).
+
+3. **Build**  
+   Usa PyInstaller para compilar `sources/main.py` como binario ejecutable.
+
+## Resultado esperado
+
+Al finalizar correctamente el pipeline, se genera un ejecutable en:
+
+```
+workspace/python-app-pipeline_master/dist/main
+```
+
+Puedes descargarlo desde el workspace de Jenkins.
+
+## Destruir la infraestructura (opcional)
+
+Cuando termines, puedes eliminar todo con:
+
+```bash
+terraform destroy
+```
+
+Y confirmar con `yes`.
+
+## Autores
+
+García Sánchez, Jesús  
+Abuín Sánchez, David
+
 Fecha: Mayo 2025
